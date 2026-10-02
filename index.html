@@ -2,8 +2,8 @@
 <html lang="th">
 <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
-    <title>E-Simulator Roleplay (Final Fixed)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Sales E-Simulator</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
@@ -69,6 +69,7 @@
             border-radius: 50%; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .progress { color:#888; font-size:14px; margin:0; }
     </style>
 </head>
 <body>
@@ -80,69 +81,40 @@
 
     <div class="container-box">
         <h1>🎙️ Sales E-Simulator</h1>
-        
+
         <div id="setup" class="setup-section">
             <label>ชื่อ-นามสกุล:</label>
             <input type="text" id="inputUserName" placeholder="กรอกชื่อของคุณ">
             <label>สังกัด/กลุ่มงาน:</label>
             <input type="text" id="inputUserGroup" placeholder="กรอกชื่อกลุ่มงาน">
-            
+
             <label>ระดับความยาก:</label>
             <div class="radio-group">
                 <label><input type="radio" name="difficulty" value="easy" checked> ระดับปกติ (Easy)</label>
                 <label><input type="radio" name="difficulty" value="hard"> ระดับท้าทาย (Hard)</label>
             </div>
-            
+
             <label>เลือกประเภทประกัน:</label>
             <select id="productType">
-                <option value="ME">สะสมทัพย์พิเศษ</option>
+                <option value="ME">สะสมทรัพย์พิเศษ</option>
             </select>
             <button id="startTestBtn" style="width:100%; margin:20px 0;">เริ่มการทดสอบ</button>
         </div>
 
-        <div id="section1" class="test-section" style="display:none;">
-            <h2>Step 1: การเปิดใจและสร้างบรรยากาศ</h2>
-            <p class="instruction" id="s1_instruction"></p>
-            <audio id="customerAudio" style="width:100%; margin-bottom:10px;"></audio>
-            <div id="s1_status"></div>
-            <button id="recordBtn">🎤 กดเพื่อพูดตอบโต้</button>
-            <button id="nextRoundBtn" class="btn-next" style="display:none;">ถัดไป</button>
-            <button id="nextSection2Btn" class="btn-next" style="display:none;">ไปขั้นตอนถัดไป</button>
+        <div id="test" class="test-section" style="display:none;">
+            <p class="progress" id="progress"></p>
+            <h2 id="stepTitle"></h2>
+            <p class="instruction" id="qText"></p>
+            <div id="status"></div>
+            <button id="playBtn">🔈 ฟังเสียงลูกค้า</button>
+            <button id="recBtn" style="display:none;">🎤 กดเพื่อพูดตอบโต้</button>
+            <button id="nextBtn" class="btn-next" style="display:none;">ถัดไป</button>
         </div>
 
-        <div id="section2" class="test-section" style="display:none;">
-            <h2>Step 2: การนำเสนอผลิตภัณฑ์ (Pitching)</h2>
-            <p class="instruction">โปรดนำเสนอจุดเด่นของแบบประกันที่คุณเลือกมาให้ครบถ้วน</p>
-            <div id="s2_status"></div>
-            <button id="pitchRecordBtn">🎤 เริ่มบันทึกการนำเสนอ</button>
-            <button id="nextSection3Btn" class="btn-next" style="display:none;">ไปขั้นตอนถัดไป</button>
-        </div>
-
-        <div id="section3" class="test-section" style="display:none;">
-            <h2>Step 3: การตอบข้อโต้แย้ง</h2>
-            <p class="instruction">ลูกค้ากำลังสงสัย... ฟังเสียงลูกค้าแล้วกดตอบครับ</p>
-            <button id="startQBtn">🔈 ฟังเสียงลูกค้า</button>
-            <div id="s3_status" style="margin-top:10px;"></div>
-            <button id="answerBtn" style="display:none;">🎤 ตอบข้อโต้แย้ง</button>
-            <button id="closeBtn" style="display:none;">🎤 ปิดการขายทันที</button>
-            <button id="replyBtn" style="display:none;">🎤 ตอบคำถามเพิ่มเติม</button>
-            <button id="nextSection4Btn" class="btn-next" style="display:none;">ไปขั้นตอนถัดไป</button>
-        </div>
-
-        <div id="section4" class="test-section" style="display:none;">
-            <h2>Step 4: ข้อโต้แย้งระดับสูง</h2>
-            <p class="instruction">ลูกค้ายังลังเลเรื่องเบี้ยประกัน...</p>
-            <div id="s4_status"></div>
-            <button id="answerHBtn">🎤 ตอบข้อโต้แย้งเบี้ยประกัน</button>
-            <button id="nextSection5Btn" class="btn-next" style="display:none;">ไปขั้นตอนสุดท้าย</button>
-        </div>
-
-        <div id="section5" class="test-section" style="display:none;">
-            <h2>Step 5: การสรุปและปิดการขาย</h2>
-            <p class="instruction">สรุปความคุ้มครองและขออนุญาตทำแอปครับ</p>
-            <div id="s5_status"></div>
-            <button id="answerABtn">🎤 สรุปและปิดการขาย</button>
-            <button id="finalSaveBtn" class="btn-next" style="display:none; background-color: #28a745;">✅ ส่งผลการทดสอบ</button>
+        <div id="finish" class="test-section" style="display:none;">
+            <h2>ตอบครบทุกขั้นตอนแล้ว</h2>
+            <p class="instruction" id="finishInfo"></p>
+            <button id="finalSaveBtn" style="background-color:#28a745;">✅ ส่งผลการทดสอบ</button>
         </div>
 
         <div id="certificate">
@@ -150,20 +122,24 @@
             <p style="font-size: 20px;">คุณ <strong><span id="traineeName"></span></strong></p>
             <p>ได้ทำการทดสอบ Sales E-Simulator เสร็จสิ้น</p>
             <p>วันที่ทดสอบ: <span id="issueDate"></span></p>
-            <button id="certBtn" style="background:#d9534f;">ดูใบประกาศ</button>
+            <button id="certBtn" style="background:#d9534f;">พิมพ์/บันทึกใบประกาศ</button>
         </div>
     </div>
 
 <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno'; 
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // --- 1. คลังข้อมูลเสียงลูกค้า (แก้ไข URL ไฟล์เสียงที่นี่) ---
-const scenarios = {
+    // ที่เก็บข้อมูลแยกเฉพาะแอปนี้ (สร้างด้วย supabase_setup.sql) ไม่ใช้ร่วมกับตาราง/bucket เดิม
+    const BUCKET = 'agent-recordings';
+    const TABLE  = 'agent_recordings';
+    const TEAM   = 'agent';
+
+    // --- คลังข้อมูลเสียงลูกค้า (แก้ไข URL ไฟล์เสียงที่นี่) ---
+    const scenarios = {
     s1: [ 
         // ช่วงเปิดการขาย และข้อโต้แย้งแรก (Opening & Objections)
         { text: "โทรมาจากไหนครับ? / ไม่สนใจครับ มีประกันเยอะแล้ว", audio: "audio/s1_1.mp3" },
@@ -206,142 +182,163 @@ const scenarios = {
     ]
 };
 
-    let mediaRecorder;
-    let audioChunks = [];
-    let allRecordings = [];
-    let currentUserId = uuidv4();
-    let selectedProductType = "";
-    let s1_round = 0;
-    const customerAudioPlayer = new Audio();
+    const STEPS = [
+        { key: 's1', title: 'Step 1: การเปิดใจและสร้างบรรยากาศ' },
+        { key: 's2', title: 'Step 2: การนำเสนอผลิตภัณฑ์ (Pitching)' },
+        { key: 's3', title: 'Step 3: การตอบข้อโต้แย้ง' },
+        { key: 's4', title: 'Step 4: ข้อโต้แย้งระดับสูง' },
+        { key: 's5', title: 'Step 5: การสรุปและปิดการขาย' }
+    ];
 
-    // ฟังก์ชันช่วยเล่นเสียง
-    const playScenarioAudio = (audioUrl, statusId) => {
-        const statusElem = document.getElementById(statusId);
-        statusElem.innerHTML = "🔈 กำลังเล่นเสียงลูกค้า...";
-        customerAudioPlayer.src = audioUrl;
-        customerAudioPlayer.play();
-        customerAudioPlayer.onended = () => {
-            statusElem.innerHTML = "✅ ฟังจบแล้ว ตอบคำถามได้เลย";
+    const $ = id => document.getElementById(id);
+    const show = (id, on) => { $(id).style.display = on ? '' : 'none'; };
+    const sessionId = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
+    const recs = {};            // "ขั้น-ข้อ" -> ข้อมูลเสียงที่อัดไว้ (อัดใหม่ = ทับของเดิม)
+    const player = new Audio();
+    let user = {}, si = 0, qi = 0, saved = false, busy = false;
+
+    const curKey = () => (si + 1) + '-' + (qi + 1);
+    const curList = () => scenarios[STEPS[si].key];
+    const isLast = () => si === STEPS.length - 1 && qi === curList().length - 1;
+
+    const load = () => {
+        const q = curList()[qi];
+        $('progress').textContent = 'ขั้นตอน ' + (si + 1) + '/' + STEPS.length + ' • ข้อ ' + (qi + 1) + '/' + curList().length;
+        $('stepTitle').textContent = STEPS[si].title;
+        $('qText').textContent = 'สถานการณ์: ' + q.text;
+        $('status').innerHTML = '';
+        $('recBtn').textContent = '🎤 กดเพื่อพูดตอบโต้';
+        $('recBtn').classList.remove('btn-stop');
+        $('playBtn').disabled = false;
+        $('nextBtn').textContent = isLast() ? 'เสร็จสิ้นการทดสอบ' : 'ถัดไป';
+        show('playBtn', true); show('recBtn', false); show('nextBtn', false);
+        window.scrollTo(0, 0);
+    };
+
+    $('startTestBtn').onclick = () => {
+        const name = $('inputUserName').value.trim();
+        const group = $('inputUserGroup').value.trim();
+        if (!name) return alert('กรุณากรอกชื่อก่อนเริ่ม');
+        if (!group) return alert('กรุณากรอกสังกัด/กลุ่มงาน');
+        user = {
+            name, group,
+            difficulty: document.querySelector('input[name="difficulty"]:checked').value,
+            product: $('productType').value
         };
+        show('setup', false); show('test', true);
+        load();
     };
 
-    // --- Section 1: การเปิดใจ (Loop ตามจำนวนข้อ) ---
-    const startTest = () => {
-        const name = document.getElementById("inputUserName").value;
-        if(!name) return alert("กรุณากรอกชื่อก่อนเริ่ม");
-        selectedProductType = document.getElementById("productType").value;
-        document.getElementById("setup").style.display = "none";
-        document.getElementById("section1").style.display = "block";
-        loadS1Round();
+    // --- เล่นเสียงลูกค้า (ปุ่มอัดเสียงจะโผล่หลังฟังจบ หรือเมื่อไฟล์เสียงเล่นไม่ได้) ---
+    $('playBtn').onclick = () => {
+        const q = curList()[qi];
+        $('status').innerHTML = '🔈 กำลังเล่นเสียงลูกค้า...';
+        const ready = html => { $('status').innerHTML = html; show('recBtn', true); };
+        player.onended = () => ready('✅ ฟังจบแล้ว ตอบได้เลย');
+        player.onerror = () => ready('<span style="color:#d9534f;">⚠️ เล่นเสียงไม่ได้ อ่านโจทย์ด้านบนแล้วตอบได้เลย</span>');
+        player.src = q.audio;
+        player.play().catch(() => {});
     };
 
-    const loadS1Round = () => {
-        if(s1_round < scenarios.s1.length) {
-            const currentQ = scenarios.s1[s1_round];
-            document.getElementById("s1_instruction").textContent = `สถานการณ์ที่ ${s1_round + 1}: ${currentQ.text}`;
-            document.getElementById("nextRoundBtn").style.display = "none";
-            document.getElementById("recordBtn").style.display = "none"; // ซ่อนปุ่มพูดจนกว่าจะกดฟัง
-            
-            // สร้างปุ่มฟังเสียงถ้ายังไม่มี หรือใช้ปุ่มเดิม
-            let playBtn = document.getElementById("playS1Btn");
-            if(!playBtn) {
-                playBtn = document.createElement("button");
-                playBtn.id = "playS1Btn";
-                playBtn.textContent = "🔈 ฟังเสียงลูกค้า";
-                playBtn.onclick = () => {
-                    playScenarioAudio(currentQ.audio, "s1_status");
-                    document.getElementById("recordBtn").style.display = "inline-block";
-                };
-                document.getElementById("section1").insertBefore(playBtn, document.getElementById("s1_status"));
-            }
-        } else {
-            document.getElementById("section1").innerHTML = "<h2>จบขั้นตอนที่ 1</h2><button class='btn-next' onclick='document.getElementById(\"section1\").style.display=\"none\"; document.getElementById(\"section2\").style.display=\"block\";'>ไปขั้นตอนที่ 2</button>";
+    // --- บันทึกเสียง ---
+    const pickMime = () => ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+        .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+    let recorder = null;
+
+    $('recBtn').onclick = async () => {
+        if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+        if (!window.MediaRecorder) return alert('เบราว์เซอร์นี้ไม่รองรับการอัดเสียง กรุณาใช้ Chrome หรือ Safari เวอร์ชันล่าสุด');
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (e) {
+            return alert('ไม่สามารถใช้ไมโครโฟนได้ กรุณากดอนุญาตการเข้าถึงไมค์ในเบราว์เซอร์แล้วลองใหม่');
         }
+        player.pause();
+        const mime = pickMime();
+        const chunks = [];
+        const k = curKey(), part = si + 1, qNum = qi + 1, qText = curList()[qi].text;
+        const r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        recorder = r;
+        r.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        r.onstop = () => {
+            stream.getTracks().forEach(t => t.stop());
+            const type = r.mimeType || mime || 'audio/webm';
+            recs[k] = { part, qNum, qText, type, ext: type.includes('mp4') ? 'm4a' : 'webm', blob: new Blob(chunks, { type }) };
+            $('status').innerHTML = '<p style="color:green;">✅ บันทึกคำตอบสำเร็จ (กดอัดใหม่ได้ถ้าต้องการ)</p>';
+            $('recBtn').textContent = '🎤 อัดใหม่';
+            $('recBtn').classList.remove('btn-stop');
+            $('playBtn').disabled = false;
+            show('nextBtn', true);
+        };
+        r.start();
+        $('status').innerHTML = '<p class="status-recording">🔴 กำลังบันทึกเสียงตอบของคุณ...</p>';
+        $('recBtn').textContent = '⏹ หยุดบันทึก';
+        $('recBtn').classList.add('btn-stop');
+        $('playBtn').disabled = true;
+        show('nextBtn', false);
     };
 
-    // --- ฟังก์ชันบันทึกเสียง (ใช้ร่วมกันทุก Section) ---
-    const toggleRecording = async (step, sectionKey, roundIdx) => {
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
+    $('nextBtn').onclick = () => {
+        if (qi + 1 < curList().length) qi++;
+        else if (si + 1 < STEPS.length) { si++; qi = 0; }
+        else {
+            show('test', false); show('finish', true);
+            $('finishInfo').textContent = 'บันทึกคำตอบแล้ว ' + Object.keys(recs).length + ' ข้อ กดส่งผลการทดสอบเพื่อบันทึกเข้าระบบ';
             return;
         }
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(audioChunks, { type: 'audio/webm' });
-            
-            // ดึงข้อความคำถามมาเก็บไว้
-            let qText = scenarios[sectionKey][roundIdx].text;
-            let partNum = parseInt(step);
-
-            allRecordings.push({ 
-                part: partNum, 
-                qNum: roundIdx + 1, 
-                qText: qText, 
-                audioBlob: blob 
-            });
-
-            updateUIStatus(step, false);
-            showNextButton(step);
-        };
-        mediaRecorder.start();
-        updateUIStatus(step, true);
+        load();
     };
 
-    const updateUIStatus = (step, isRecording) => {
-        const statusMap = {1:"s1_status", 8:"s2_status", 2:"s3_status", 5:"s4_status", 6:"s5_status"};
-        const statusId = statusMap[step];
-        document.getElementById(statusId).innerHTML = isRecording ? 
-            '<p class="status-recording">🔴 กำลังบันทึกเสียงตอบของคุณ...</p>' : 
-            '<p style="color:green;">✅ บันทึกคำตอบสำเร็จ</p>';
-    };
-
-    const showNextButton = (step) => {
-        if(step === 1) { 
-            s1_round++; 
-            document.getElementById("nextRoundBtn").style.display = "inline-block"; 
-            document.getElementById("recordBtn").style.display = "none";
+    // --- ส่งผล: อัปโหลดเสียงเข้า bucket แล้วบันทึกแถวลงตาราง ---
+    $('finalSaveBtn').onclick = async () => {
+        if (busy) return;
+        busy = true;
+        $('finalSaveBtn').disabled = true;
+        $('loadingOverlay').style.display = 'flex';
+        const items = Object.values(recs).sort((a, b) => a.part - b.part || a.qNum - b.qNum);
+        try {
+            let n = 0;
+            for (const r of items) {
+                $('loadingText').textContent = 'กำลังอัปโหลดเสียง ' + (++n) + '/' + items.length + '...';
+                if (r.url) continue; // อัปโหลดสำเร็จแล้วจากความพยายามก่อนหน้า
+                const path = sessionId + '/p' + r.part + '_q' + r.qNum + '.' + r.ext;
+                const { error } = await supabase.storage.from(BUCKET).upload(path, r.blob, { contentType: r.type });
+                if (error) throw error;
+                r.path = path;
+                r.url = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+            }
+            $('loadingText').textContent = 'กำลังบันทึกข้อมูล...';
+            const rows = items.map(r => ({
+                session_id: sessionId, team: TEAM,
+                trainee_name: user.name, trainee_group: user.group,
+                difficulty: user.difficulty, product_type: user.product,
+                part: r.part, q_num: r.qNum, q_text: r.qText,
+                audio_path: r.path, audio_url: r.url, mime_type: r.type
+            }));
+            const { error } = await supabase.from(TABLE).insert(rows);
+            if (error) throw error;
+            saved = true;
+            show('finish', false);
+            $('traineeName').textContent = user.name;
+            $('issueDate').textContent = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            $('certificate').style.display = 'block';
+            window.scrollTo(0, 0);
+        } catch (e) {
+            console.error(e);
+            alert('บันทึกไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วกดส่งอีกครั้ง\n' + (e.message || ''));
+            $('finalSaveBtn').disabled = false;
+            busy = false;
+        } finally {
+            $('loadingOverlay').style.display = 'none';
         }
-        else if(step === 8) document.getElementById("nextSection3Btn").style.display = "inline-block";
-        else if(step === 2) document.getElementById("nextSection4Btn").style.display = "inline-block";
-        else if(step === 5) document.getElementById("nextSection5Btn").style.display = "inline-block";
-        else if(step === 6) document.getElementById("finalSaveBtn").style.display = "inline-block";
     };
 
-    // --- ผูกเหตุการณ์กับปุ่มในหน้าจอ ---
+    $('certBtn').onclick = () => window.print();
 
-    // Section 1
-    document.getElementById("startTestBtn").onclick = startTest;
-    document.getElementById("recordBtn").onclick = () => toggleRecording(1, 's1', s1_round);
-    document.getElementById("nextRoundBtn").onclick = loadS1Round;
-
-    // Section 2: Pitching
-    document.getElementById("pitchRecordBtn").parentElement.querySelector('p').textContent = scenarios.s2[0].text;
-    document.getElementById("pitchRecordBtn").onclick = () => toggleRecording(8, 's2', 0);
-
-    // Section 3: Health (ปรับปุ่มเดิมของคุณ)
-    document.getElementById("startQBtn").onclick = () => {
-        playScenarioAudio(scenarios.s3[0].audio, "s3_status");
-        document.getElementById("answerBtn").style.display = "inline-block";
-    };
-    document.getElementById("answerBtn").onclick = () => toggleRecording(2, 's3', 0);
-
-    // Section 4: Premium
-    document.getElementById("answerHBtn").onclick = () => {
-        // เพิ่มปุ่มฟังเสียงก่อนหน้าปุ่มนี้ใน HTML ด้วยจะดีมากครับ
-        toggleRecording(5, 's4', 0);
-    };
-
-    // Section 5: Closing
-    document.getElementById("answerABtn").onclick = () => toggleRecording(6, 's5', 0);
-
-    // Final Save
-    document.getElementById("finalSaveBtn").onclick = async () => {
-        // ... (ใช้ logic uploadAll เดิมของคุณได้เลยครับ ข้อมูลจะถูกดึงจาก allRecordings ที่เราเตรียมไว้แล้ว)
-    };
-
+    window.addEventListener('beforeunload', e => {
+        if (Object.keys(recs).length && !saved) { e.preventDefault(); e.returnValue = ''; }
+    });
 </script>
 </body>
 </html>
