@@ -106,6 +106,7 @@
             <h2 id="stepTitle"></h2>
             <p class="instruction" id="qText"></p>
             <div id="status"></div>
+            <audio id="myAudio" controls style="display:none; width:100%; margin:10px 0;"></audio>
             <button id="playBtn">🔈 ฟังเสียงลูกค้า</button>
             <button id="recBtn" style="display:none;">🎤 กดเพื่อพูดตอบโต้</button>
             <button id="nextBtn" class="btn-next" style="display:none;">ถัดไป</button>
@@ -114,6 +115,7 @@
         <div id="finish" class="test-section" style="display:none;">
             <h2>ตอบครบทุกขั้นตอนแล้ว</h2>
             <p class="instruction" id="finishInfo"></p>
+            <div id="reviewList"></div>
             <button id="finalSaveBtn" style="background-color:#28a745;">✅ ส่งผลการทดสอบ</button>
         </div>
 
@@ -207,6 +209,8 @@
         $('stepTitle').textContent = STEPS[si].title;
         $('qText').textContent = 'สถานการณ์: ' + q.text;
         $('status').innerHTML = '';
+        $('myAudio').pause();
+        $('myAudio').style.display = 'none';
         $('recBtn').textContent = '🎤 กดเพื่อพูดตอบโต้';
         $('recBtn').classList.remove('btn-stop');
         $('playBtn').disabled = false;
@@ -255,6 +259,8 @@
             return alert('ไม่สามารถใช้ไมโครโฟนได้ กรุณากดอนุญาตการเข้าถึงไมค์ในเบราว์เซอร์แล้วลองใหม่');
         }
         player.pause();
+        $('myAudio').pause();
+        $('myAudio').style.display = 'none';
         const mime = pickMime();
         const chunks = [];
         const k = curKey(), part = si + 1, qNum = qi + 1, qText = curList()[qi].text;
@@ -264,8 +270,12 @@
         r.onstop = () => {
             stream.getTracks().forEach(t => t.stop());
             const type = r.mimeType || mime || 'audio/webm';
-            recs[k] = { part, qNum, qText, type, ext: type.includes('mp4') ? 'm4a' : 'webm', blob: new Blob(chunks, { type }) };
-            $('status').innerHTML = '<p style="color:green;">✅ บันทึกคำตอบสำเร็จ (กดอัดใหม่ได้ถ้าต้องการ)</p>';
+            if (recs[k] && recs[k].objUrl) URL.revokeObjectURL(recs[k].objUrl);
+            const blob = new Blob(chunks, { type });
+            recs[k] = { part, qNum, qText, type, ext: type.includes('mp4') ? 'm4a' : 'webm', blob, objUrl: URL.createObjectURL(blob) };
+            $('myAudio').src = recs[k].objUrl;
+            $('myAudio').style.display = 'block';
+            $('status').innerHTML = '<p style="color:green;">✅ บันทึกคำตอบสำเร็จ ฟังเสียงตัวเองได้ด้านล่าง หรือกดอัดใหม่</p>';
             $('recBtn').textContent = '🎤 อัดใหม่';
             $('recBtn').classList.remove('btn-stop');
             $('playBtn').disabled = false;
@@ -284,7 +294,22 @@
         else if (si + 1 < STEPS.length) { si++; qi = 0; }
         else {
             show('test', false); show('finish', true);
-            $('finishInfo').textContent = 'บันทึกคำตอบแล้ว ' + Object.keys(recs).length + ' ข้อ กดส่งผลการทดสอบเพื่อบันทึกเข้าระบบ';
+            $('finishInfo').textContent = 'บันทึกคำตอบแล้ว ' + Object.keys(recs).length + ' ข้อ ฟังทบทวนได้ก่อน แล้วกดส่งผลการทดสอบ';
+            const list = $('reviewList');
+            list.innerHTML = '';
+            Object.values(recs).sort((a, b) => a.part - b.part || a.qNum - b.qNum).forEach(r => {
+                const box = document.createElement('div');
+                box.style.margin = '14px 0';
+                const t = document.createElement('div');
+                t.style.fontSize = '14px';
+                t.textContent = 'Step ' + r.part + ' ข้อ ' + r.qNum + ': ' + r.qText;
+                const a = document.createElement('audio');
+                a.controls = true;
+                a.src = r.objUrl;
+                a.style.width = '100%';
+                box.append(t, a);
+                list.append(box);
+            });
             return;
         }
         load();
