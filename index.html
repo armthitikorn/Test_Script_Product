@@ -75,10 +75,9 @@ input[type=text],select{width:100%;padding:12px;margin:8px 0;border:1px solid #d
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const supabase = createClient(
-  'https://wzwyotzzxycqfwercakh.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno'
-);
+    const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ที่เก็บของงานนี้โดยเฉพาะ (ไม่แตะ agent-recordings / agent_recordings เดิม)
 const Q_BUCKET = 'vq-audio';     // เสียงคำถามของเทรนเนอร์
