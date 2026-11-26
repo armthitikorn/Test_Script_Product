@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales E-Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
+body{font-family:'Sarabun',sans-serif;padding:20px;text-align:center;background:#f4f7f6;-webkit-text-size-adjust:100%}
+.container-box{max-width:700px;margin:0 auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+h1{font-size:28px;color:#d9534f;margin-bottom:20px}
+h2{margin-top:25px;font-size:22px;color:#337ab7;border-bottom:2px solid #eee;padding-bottom:10px}
+button{padding:12px 24px;font-size:18px;cursor:pointer;background:#5cb85c;color:#fff;border:none;border-radius:8px;margin:10px;transition:all .3s;font-family:'Sarabun',sans-serif;font-weight:bold}
+button:hover{background:#4cae4c;transform:translateY(-2px)}
+button:disabled{background:#ccc;cursor:not-allowed}
+.btn-stop{background:#d9534f}.btn-stop:hover{background:#c9302c}
+.btn-next{background:#f0ad4e}
+.setup-section,.test-section{margin-bottom:30px;text-align:left}
+.instruction{font-size:18px;color:#444;margin-bottom:15px;line-height:1.6}
+.status-recording{color:#d9534f;font-weight:bold;animation:blink 1s infinite}
+@keyframes blink{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+input[type=text],select{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:6px;font-size:16px;box-sizing:border-box;font-family:inherit}
+#certificate{display:none;margin-top:30px;padding:40px;border:10px double #d9534f;background:#fff}
+#certificate h2{border:none;color:#d9534f;font-size:32px}
+#loadingOverlay{position:fixed;inset:0;background:rgba(255,255,255,.9);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:9999}
+.spinner{width:50px;height:50px;border:5px solid #f3f3f3;border-top:5px solid #d9534f;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress{color:#888;font-size:14px;margin:0}
+.err{color:#d9534f;font-size:15px;margin:8px 0}
+.warn{background:#fff3cd;border:1px solid #ffe08a;color:#7a5b00;padding:10px 12px;border-radius:8px;font-size:15px;line-height:1.5;margin:0 0 14px}
+</style>
+</head>
+<body>
+<div id="loadingOverlay"><div class="spinner"></div><p id="loadingText" style="margin-top:15px;font-weight:bold">กำลังบันทึกข้อมูล...</p></div>
+
+<div class="container-box">
+  <h1>🎙️ Sales E-Simulator</h1>
+
+  <div id="setup" class="setup-section">
+    <div id="browserWarn" class="warn" style="display:none"></div>
+    <label>ชื่อ-นามสกุล:</label>
+    <input type="text" id="inputUserName" placeholder="กรอกชื่อของคุณ">
+    <label>สังกัด/กลุ่มงาน:</label>
+    <input type="text" id="inputUserGroup" placeholder="กรอกชื่อกลุ่มงาน">
+    <label>ทีม:</label>
+    <select id="teamSel"><option value="tele">ทีมเทเล</option><option value="agent">ทีมเอเจน</option></select>
+    <div id="setupErr" class="err"></div>
+    <button id="startTestBtn" style="width:100%;margin:20px 0">เริ่มการทดสอบ</button>
+  </div>
+
+  <div id="test" class="test-section" style="display:none">
+    <p class="progress" id="progress"></p>
+    <p class="instruction" id="qText"></p>
+    <div id="status"></div>
+    <audio id="myAudio" controls playsinline style="display:none;width:100%;margin:10px 0"></audio>
+    <button id="playBtn">🔈 ฟังเสียงลูกค้า</button>
+    <button id="recBtn" style="display:none">🎤 กดเพื่อพูดตอบโต้</button>
+    <button id="nextBtn" class="btn-next" style="display:none">ถัดไป</button>
+  </div>
+
+  <div id="finish" class="test-section" style="display:none">
+    <h2>ตอบครบทุกข้อแล้ว</h2>
+    <p class="instruction" id="finishInfo"></p>
+    <div id="reviewList"></div>
+    <button id="finalSaveBtn" style="background:#28a745">✅ ส่งผลการทดสอบ</button>
+  </div>
+
+  <div id="certificate">
+    <h2>ยินดีด้วย!</h2>
+    <p style="font-size:20px">คุณ <strong><span id="traineeName"></span></strong></p>
+    <p>ได้ทำการทดสอบ Sales E-Simulator เสร็จสิ้น</p>
+    <p>วันที่ทดสอบ: <span id="issueDate"></span></p>
+    <button id="certBtn" style="background:#d9534f">พิมพ์/บันทึกใบประกาศ</button>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+// ที่เก็บของงานนี้โดยเฉพาะ (ไม่แตะ agent-recordings / agent_recordings เดิม)
+const Q_BUCKET = 'vq-audio';     // เสียงคำถามของเทรนเนอร์
+const A_BUCKET = 'vq-answers';   // เสียงตอบของพนักงาน
+const TABLE = 'vq_answers';
+
+const $ = id => document.getElementById(id);
+const show = (id, on) => { $(id).style.display = on ? '' : 'none'; };
+const sessionId = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2);
+const player = new Audio();
+const recs = {};              // index ข้อ -> เสียงที่อัดไว้ (อัดใหม่ = ทับของเดิม)
+let qs = [], qi = 0, user = {}, saved = false, busy = false, recorder = null;
+
+// [เพิ่ม] ตรวจว่าเปิดในเบราว์เซอร์ของแอป (LINE/Facebook/Messenger/Instagram ฯลฯ) หรือไม่
+const UA = navigator.userAgent || '';
+const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const inApp = /Line\/|FBAN|FBAV|FB_IAB|Instagram|Messenger|MicroMessenger|TikTok|Twitter/i.test(UA);
+const openInSafariMsg = 'กรุณาเปิดลิงก์นี้ด้วย Safari (iPhone) หรือ Chrome (Android) โดยกดปุ่ม ⋯ หรือไอคอนแชร์ แล้วเลือก "เปิดใน Safari/เบราว์เซอร์"';
+
+// [เพิ่ม] เตือนล่วงหน้าที่หน้าแรก ถ้าเครื่องนี้น่าจะอัดเสียงไม่ได้
+(() => {
+  const w = $('browserWarn');
+  if (inApp) {
+    w.textContent = '⚠️ ตรวจพบว่าเปิดผ่านแอป (เช่น LINE/Facebook) ซึ่งอาจอัดเสียงไม่ได้ ' + openInSafariMsg;
+    w.style.display = 'block';
+  } else if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    w.textContent = '⚠️ เบราว์เซอร์นี้อาจอัดเสียงไม่ได้ กรุณาใช้ Safari (iOS 14.3 ขึ้นไป) หรือ Chrome เวอร์ชันล่าสุด';
+    w.style.display = 'block';
+  }
+})();
+
+const load = () => {
+  const q = qs[qi];
+  $('progress').textContent = 'ข้อ ' + (qi + 1) + '/' + qs.length;
+  $('qText').textContent = 'สถานการณ์: ' + q.question_text;
+  $('myAudio').pause(); show('myAudio', false);
+  $('recBtn').textContent = '🎤 กดเพื่อพูดตอบโต้'; $('recBtn').classList.remove('btn-stop');
+  $('playBtn').disabled = false;
+  $('nextBtn').textContent = qi === qs.length - 1 ? 'เสร็จสิ้นการทดสอบ' : 'ถัดไป';
+  const hasAudio = !!q.audio_path;   // ยังไม่มีเสียง = อ่านโจทย์แล้วตอบได้เลย
+  $('status').innerHTML = hasAudio ? '' : '<span style="color:#888">ข้อนี้ยังไม่มีเสียงลูกค้า อ่านโจทย์แล้วตอบได้เลย</span>';
+  show('playBtn', hasAudio); show('recBtn', !hasAudio); show('nextBtn', false);
+  window.scrollTo(0, 0);
+};
+
+$('startTestBtn').onclick = async () => {
+  const name = $('inputUserName').value.trim(), group = $('inputUserGroup').value.trim();
+  $('setupErr').textContent = '';
+  if (!name) return $('setupErr').textContent = 'กรุณากรอกชื่อก่อนเริ่ม';
+  if (!group) return $('setupErr').textContent = 'กรุณากรอกสังกัด/กลุ่มงาน';
+  user = { name, group, team: $('teamSel').value };
+  $('startTestBtn').disabled = true;
+  const { data, error } = await supabase.from('vq_questions').select('*')
+    .eq('team', user.team).eq('is_active', true).order('position');
+  $('startTestBtn').disabled = false;
+  if (error) return $('setupErr').textContent = 'โหลดคำถามไม่สำเร็จ: ' + error.message;
+  if (!data.length) return $('setupErr').textContent = 'ทีมนี้ยังไม่มีคำถาม ติดต่อเทรนเนอร์';
+  qs = data; qi = 0;
+  show('setup', false); show('test', true); load();
+};
+
+// เล่นเสียงลูกค้า: ปุ่มอัดเสียงโผล่หลังฟังจบ หรือเมื่อไฟล์เล่นไม่ได้
+$('playBtn').onclick = () => {
+  const q = qs[qi];
+  $('status').innerHTML = '🔈 กำลังเล่นเสียงลูกค้า...';
+  const ready = html => { $('status').innerHTML = html; show('recBtn', true); };
+  player.onended = () => ready('✅ ฟังจบแล้ว ตอบได้เลย');
+  player.onerror = () => ready('<span style="color:#d9534f">⚠️ เล่นเสียงไม่ได้ อ่านโจทย์ด้านบนแล้วตอบได้เลย</span>');
+  player.src = supabase.storage.from(Q_BUCKET).getPublicUrl(q.audio_path).data.publicUrl;
+  player.play().catch(() => {});
+};
+
+// ให้ audio/mp4 มาก่อน เพราะ Safari/iPhone อัด mp4 ได้เสถียรกว่า webm
+const pickMime = () => ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
+  .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+
+// [เพิ่ม] แปลง error ของไมค์เป็นข้อความที่บอกสาเหตุ
+const micErrorMsg = e => {
+  const n = (e && e.name) || '';
+  let m;
+  if (n === 'NotAllowedError' || n === 'SecurityError') m = 'ยังไม่ได้อนุญาตให้ใช้ไมโครโฟน กรุณาไปที่ ตั้งค่า > Safari > ไมโครโฟน เลือก "อนุญาต" (หรือกดไอคอน aA ในแถบที่อยู่ > การตั้งค่าเว็บไซต์ > ไมโครโฟน > อนุญาต) แล้วรีเฟรชหน้า';
+  else if (n === 'NotReadableError' || n === 'AbortError') m = 'ไมโครโฟนถูกใช้งานอยู่ (เช่น กำลังโทรหรือมีแอปอื่นใช้ไมค์) กรุณาปิดแอปอื่น/วางสายก่อน แล้วลองใหม่';
+  else if (n === 'NotFoundError' || n === 'OverconstrainedError') m = 'ไม่พบไมโครโฟนในเครื่องนี้';
+  else m = 'ไม่สามารถใช้ไมโครโฟนได้';
+  if (inApp) m += '\n\n' + openInSafariMsg;
+  return m + '\n(รหัส: ' + (n || (e && e.message) || 'unknown') + ')';
+};
+
+$('recBtn').onclick = async () => {
+  if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+  // [แก้ไข] แยกสาเหตุ: เบราว์เซอร์ในแอป / ไม่มี mediaDevices / ไม่มี MediaRecorder
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return alert('เบราว์เซอร์นี้ใช้ไมโครโฟนไม่ได้' + (inApp ? '\n\n' + openInSafariMsg : '\nกรุณาเปิดด้วย Safari และตรวจสอบว่าลิงก์เป็น https'));
+  }
+  if (!window.MediaRecorder) {
+    return alert('เบราว์เซอร์นี้ไม่รองรับการอัดเสียง' + (isIOS ? '\nกรุณาอัปเดต iOS เป็น 14.3 ขึ้นไป และเปิดด้วย Safari' : '\nกรุณาใช้ Chrome เวอร์ชันล่าสุด'));
+  }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { console.error(e); return alert(micErrorMsg(e)); }
+  player.pause(); $('myAudio').pause(); show('myAudio', false);
+  const mime = pickMime(), chunks = [], k = qi, q = qs[qi];
+  // ถ้าสร้าง MediaRecorder ด้วยชนิดที่เลือกไม่ได้ ให้ใช้ค่าเริ่มต้นของเบราว์เซอร์ และปิดไมค์ถ้ายังไม่สำเร็จ
+  let r;
+  try {
+    try { r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+    catch (e) { r = new MediaRecorder(stream); }
+  } catch (e) {
+    stream.getTracks().forEach(t => t.stop());
+    return alert('ไม่สามารถเริ่มบันทึกเสียงได้: ' + (e.message || e));
+  }
+  recorder = r;
+  r.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  // [เพิ่ม] ถ้าอัดไปแล้วเกิด error กลางทาง ให้ปิดไมค์และคืนปุ่มให้กดใหม่ได้
+  r.onerror = e => {
+    console.error(e);
+    stream.getTracks().forEach(t => t.stop());
+    $('status').innerHTML = '<p style="color:#d9534f">⚠️ การอัดเสียงขัดข้อง กรุณากดอัดใหม่</p>';
+    $('recBtn').textContent = recs[k] ? '🎤 อัดใหม่' : '🎤 กดเพื่อพูดตอบโต้'; $('recBtn').classList.remove('btn-stop');
+    $('playBtn').disabled = false; show('nextBtn', !!recs[k]);
+  };
+  r.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    // ใช้ชนิดไฟล์จริงจากข้อมูลที่อัดได้ ไม่เดาเป็น webm
+    const type = (chunks[0] && chunks[0].type) || r.mimeType || mime || 'audio/mp4';
+    const blob = new Blob(chunks, { type });
+    // ถ้าไม่ได้เสียงเลย ให้แจ้งอัดใหม่ แทนการบันทึกไฟล์ว่าง
+    if (!blob.size) {
+      $('status').innerHTML = '<p style="color:#d9534f">⚠️ ไม่ได้เสียง กรุณากดอัดใหม่ (พูดอย่างน้อย 2-3 วินาที)</p>';
+      $('recBtn').textContent = recs[k] ? '🎤 อัดใหม่' : '🎤 กดเพื่อพูดตอบโต้'; $('recBtn').classList.remove('btn-stop');
+      $('playBtn').disabled = false;
+      show('nextBtn', !!recs[k]);
+      return;
+    }
+    if (recs[k] && recs[k].objUrl) URL.revokeObjectURL(recs[k].objUrl);
+    recs[k] = { qid: q.id, position: q.position, qText: q.question_text, type,
+                ext: type.includes('mp4') ? 'm4a' : 'webm', blob, objUrl: URL.createObjectURL(blob) };
+    $('myAudio').src = recs[k].objUrl; show('myAudio', true);
+    $('status').innerHTML = '<p style="color:green">✅ บันทึกคำตอบสำเร็จ ฟังเสียงตัวเองได้ด้านล่าง หรือกดอัดใหม่</p>';
+    $('recBtn').textContent = '🎤 อัดใหม่'; $('recBtn').classList.remove('btn-stop');
+    $('playBtn').disabled = false; show('nextBtn', true);
+  };
+  // [แก้ไข] ไม่ใส่ timeslice: Safari บางเวอร์ชันได้ mp4 แบบแยกชิ้นที่ต่อกันแล้วเล่นไม่ได้
+  r.start();
+  $('status').innerHTML = '<p class="status-recording">🔴 กำลังบันทึกเสียงตอบของคุณ...</p>';
+  $('recBtn').textContent = '⏹ หยุดบันทึก'; $('recBtn').classList.add('btn-stop');
+  $('playBtn').disabled = true; show('nextBtn', false);
+};
+
+$('nextBtn').onclick = () => {
+  if (qi + 1 < qs.length) { qi++; load(); return; }
+  show('test', false); show('finish', true);
+  $('finishInfo').textContent = 'บันทึกคำตอบแล้ว ' + Object.keys(recs).length + ' ข้อ ฟังทบทวนได้ก่อน แล้วกดส่งผลการทดสอบ';
+  const list = $('reviewList'); list.innerHTML = '';
+  Object.values(recs).sort((a, b) => a.position - b.position).forEach((r, i) => {
+    const box = document.createElement('div'); box.style.margin = '14px 0';
+    const t = document.createElement('div'); t.style.fontSize = '14px';
+    t.textContent = 'ข้อ ' + (i + 1) + ': ' + r.qText;
+    const a = document.createElement('audio'); a.controls = true; a.setAttribute('playsinline', ''); a.src = r.objUrl; a.style.width = '100%';
+    box.append(t, a); list.append(box);
+  });
+};
+
+// ส่งผล: อัปโหลดเสียงเข้า bucket ของงานนี้ แล้วบันทึกแถวลงตาราง vq_answers
+$('finalSaveBtn').onclick = async () => {
+  if (busy) return;
+  busy = true; $('finalSaveBtn').disabled = true; $('loadingOverlay').style.display = 'flex';
+  const items = Object.values(recs).sort((a, b) => a.position - b.position);
+  try {
+    let n = 0;
+    for (const r of items) {
+      $('loadingText').textContent = 'กำลังอัปโหลดเสียง ' + (++n) + '/' + items.length + '...';
+      if (r.path) continue;   // อัปโหลดสำเร็จแล้วจากรอบก่อน
+      const path = user.team + '/' + sessionId + '/q' + r.position + '.' + r.ext;
+      // ส่ง contentType แบบสั้น (ตัด ;codecs=... ออก) กัน bucket ที่จำกัดชนิดไฟล์ปฏิเสธ
+      const cType = (r.type || 'audio/mp4').split(';')[0];
+      const { error } = await supabase.storage.from(A_BUCKET).upload(path, r.blob, { contentType: cType });
+      if (error && !/exist|duplicate/i.test(error.message)) throw error;
+      r.path = path;
+    }
+    $('loadingText').textContent = 'กำลังบันทึกข้อมูล...';
+    const rows = items.map(r => ({
+      session_id: sessionId, team: user.team, employee_name: user.name, employee_group: user.group,
+      question_id: r.qid, position: r.position, question_text: r.qText, answer_audio_path: r.path
+    }));
+    const { error } = await supabase.from(TABLE).insert(rows);
+    if (error) throw error;
+    saved = true; show('finish', false);
+    $('traineeName').textContent = user.name;
+    $('issueDate').textContent = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    $('certificate').style.display = 'block'; window.scrollTo(0, 0);
+  } catch (e) {
+    console.error(e);
+    alert('บันทึกไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วกดส่งอีกครั้ง\n' + (e.message || ''));
+    $('finalSaveBtn').disabled = false; busy = false;
+  } finally { $('loadingOverlay').style.display = 'none'; }
+};
+
+$('certBtn').onclick = () => window.print();
+window.addEventListener('beforeunload', e => {
+  if (Object.keys(recs).length && !saved) { e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
