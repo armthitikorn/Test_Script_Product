@@ -168,13 +168,44 @@ const micErrorMsg = e => {
   return m + '\n(รหัส: ' + (n || (e && e.message) || 'unknown') + ')';
 };
 
+// [เพิ่ม] ตัวอัดเสียงแบบ WAV (ผ่าน Web Audio) ใช้กับ iOS เพราะ MediaRecorder ของ Safari มักได้ไฟล์สั้นเป็นเสี้ยววินาที
+const encodeWav = (bufs, sr) => {
+  const len = bufs.reduce((a, b) => a + b.length, 0), all = new Float32Array(len);
+  let o = 0; bufs.forEach(b => { all.set(b, o); o += b.length; });
+  const target = 16000, ratio = sr / target, n = Math.floor(len / ratio), pcm = new Int16Array(n);
+  for (let i = 0; i < n; i++) { const s = Math.max(-1, Math.min(1, all[Math.floor(i * ratio)] || 0)); pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF; }
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (p, t) => { for (let i = 0; i < t.length; i++) v.setUint8(p + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, target, true);
+  v.setUint32(28, target * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true); new Int16Array(buf, 44).set(pcm);
+  return new Blob([buf], { type: 'audio/wav' });
+};
+const makeWavRecorder = stream => {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AC(), src = ctx.createMediaStreamSource(stream), proc = ctx.createScriptProcessor(4096, 1, 1);
+  const bufs = [], rec = { state: 'inactive', mimeType: 'audio/wav', ondataavailable: null, onstop: null, onerror: null };
+  proc.onaudioprocess = e => { if (rec.state === 'recording') bufs.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+  rec.start = () => { if (ctx.resume) ctx.resume(); src.connect(proc); proc.connect(ctx.destination); rec.state = 'recording'; };
+  rec.stop = () => {
+    rec.state = 'inactive';
+    try { src.disconnect(); proc.disconnect(); } catch (e) {}
+    const sr = ctx.sampleRate; if (ctx.close) ctx.close().catch(() => {});
+    const blob = encodeWav(bufs, sr);
+    if (rec.ondataavailable) rec.ondataavailable({ data: blob });
+    if (rec.onstop) rec.onstop();
+  };
+  return rec;
+};
+
 $('recBtn').onclick = async () => {
   if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
   // [แก้ไข] แยกสาเหตุ: เบราว์เซอร์ในแอป / ไม่มี mediaDevices / ไม่มี MediaRecorder
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return alert('เบราว์เซอร์นี้ใช้ไมโครโฟนไม่ได้' + (inApp ? '\n\n' + openInSafariMsg : '\nกรุณาเปิดด้วย Safari และตรวจสอบว่าลิงก์เป็น https'));
   }
-  if (!window.MediaRecorder) {
+  if (!window.MediaRecorder && !(window.AudioContext || window.webkitAudioContext)) {
     return alert('เบราว์เซอร์นี้ไม่รองรับการอัดเสียง' + (isIOS ? '\nกรุณาอัปเดต iOS เป็น 14.3 ขึ้นไป และเปิดด้วย Safari' : '\nกรุณาใช้ Chrome เวอร์ชันล่าสุด'));
   }
   let stream;
@@ -185,8 +216,12 @@ $('recBtn').onclick = async () => {
   // ถ้าสร้าง MediaRecorder ด้วยชนิดที่เลือกไม่ได้ ให้ใช้ค่าเริ่มต้นของเบราว์เซอร์ และปิดไมค์ถ้ายังไม่สำเร็จ
   let r;
   try {
-    try { r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
-    catch (e) { r = new MediaRecorder(stream); }
+    // iOS: ใช้ตัวอัด WAV ก่อน (เสถียรกว่า) ถ้าสร้างไม่ได้ค่อยใช้ MediaRecorder
+    if (isIOS || !window.MediaRecorder) { try { r = makeWavRecorder(stream); } catch (e) { r = null; } }
+    if (!r) {
+      try { r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+      catch (e) { r = new MediaRecorder(stream); }
+    }
   } catch (e) {
     stream.getTracks().forEach(t => t.stop());
     return alert('ไม่สามารถเริ่มบันทึกเสียงได้: ' + (e.message || e));
@@ -216,7 +251,7 @@ $('recBtn').onclick = async () => {
     }
     if (recs[k] && recs[k].objUrl) URL.revokeObjectURL(recs[k].objUrl);
     recs[k] = { qid: q.id, position: q.position, qText: q.question_text, type,
-                ext: type.includes('mp4') ? 'm4a' : 'webm', blob, objUrl: URL.createObjectURL(blob) };
+                ext: type.includes('wav') ? 'wav' : type.includes('mp4') ? 'm4a' : 'webm', blob, objUrl: URL.createObjectURL(blob) };
     $('myAudio').src = recs[k].objUrl; show('myAudio', true);
     $('status').innerHTML = '<p style="color:green">✅ บันทึกคำตอบสำเร็จ ฟังเสียงตัวเองได้ด้านล่าง หรือกดอัดใหม่</p>';
     $('recBtn').textContent = '🎤 อัดใหม่'; $('recBtn').classList.remove('btn-stop');
